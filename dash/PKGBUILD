@@ -1,0 +1,38 @@
+# Maintainer: Alexey Pavlov <alexpux@gmail.com>
+
+pkgname=dash
+pkgver=0.5.13.6
+pkgrel=1
+pkgdesc="A POSIX compliant shell that aims to be as small as possible"
+arch=('x86_64')
+url="http://gondor.apana.org.au/~herbert/dash/"
+msys2_references=(
+  "cpe: cpe:/a:dash:dash"
+)
+license=('spdx:BSD-3-Clause')
+depends=('grep' 'sed' 'filesystem')
+makedepends=('autotools' 'gcc')
+install=dash.install
+source=("http://gondor.apana.org.au/~herbert/dash/files/${pkgname}-${pkgver}.tar.gz")
+sha256sums=('26aac476f476cef391c600cb064417d82a5465d8fc7c4fd56158c276e86538c1')
+
+build() {
+  cd "${srcdir}/${pkgname}-${pkgver}"
+  ./configure --prefix=/usr \
+    --bindir=/usr/bin \
+    --mandir=/usr/share/man \
+    --exec-prefix="" \
+    CFLAGS='-O2 -static-libgcc'
+  make
+}
+
+package() {
+  cd "${srcdir}/${pkgname}-${pkgver}"
+  make DESTDIR="${pkgdir}" install
+
+  # license
+  install -m644 -D COPYING "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
+
+  ln -s "${pkgdir}/usr/bin"/{d,}ash.exe
+  ln -s "${pkgdir}/usr/share/man/man1"/{d,}ash.1
+}

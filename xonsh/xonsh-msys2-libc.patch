@@ -1,0 +1,23 @@
+--- a/xonsh/platform.py	2026-11-22 12:29:51.084848200 -0300
++++ b/xonsh/platform.py	2026-11-22 12:29:51.137440600 -0300
+@@ -45,9 +45,17 @@
+ """``True`` if executed on a Linux platform, else ``False``. """
+ ON_WINDOWS = LazyBool(lambda: platform.system() == "Windows", globals(), "ON_WINDOWS")
+ """``True`` if executed on a native Windows platform, else ``False``. """
+-ON_CYGWIN = LazyBool(lambda: sys.platform == "cygwin", globals(), "ON_CYGWIN")
+-"""``True`` if executed on a Cygwin Windows platform, else ``False``. """
+-ON_MSYS = LazyBool(lambda: sys.platform == "msys", globals(), "ON_MSYS")
++ON_CYGWIN = LazyBool(
++    lambda: sys.platform == "cygwin" and not os.environ.get("MSYSTEM", "").startswith("MSYS"),
++    globals(),
++    "ON_CYGWIN"
++)
++"""``True`` if executed on a Cygwin Windows platform and not MSYS2, else ``False``. """
++ON_MSYS = LazyBool(
++    lambda: os.environ.get("MSYSTEM", "").startswith("MSYS"),
++    globals(),
++    "ON_MSYS"
++)
+ """``True`` if executed on a MSYS Windows platform, else ``False``. """
+ ON_POSIX = LazyBool(lambda: os.name == "posix", globals(), "ON_POSIX")
+ """``True`` if executed on a POSIX-compliant platform, else ``False``. """

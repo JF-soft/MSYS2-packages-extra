@@ -1,0 +1,91 @@
+# Maintainer : Daniel Bermond <dbermond@archlinux.org>
+# Contributor: Jerome Leclanche <jerome@leclan.ch>
+
+pkgname=xonsh
+pkgver=0.25.0
+pkgrel=1
+pkgdesc='A python-powered shell. Full-featured and cross-platform.'
+arch=('any')
+url='https://xon.sh/'
+msys2_references=(
+  "cpe: cpe:/a:xonsh:xonsh"
+  "purl: pkg:pypi/xonsh"
+)
+license=('spdx:BSD-2-Clause')
+# Upstream 0.25.0 declares dependencies = [] in pyproject.toml and vendors
+# ply under xonsh/parsers/ply; distro, ujson and click are lazy/optional
+# imports (try/except or on-demand). extra/xonsh on Arch still lists
+# python-click, python-distro, python-packaging, python-ply and python-ujson
+# as hard depends; here we follow upstream and expose them as optdepends.
+depends=('python')
+optdepends=(
+  'python-prompt_toolkit: for SHELL_TYPE=prompt_toolkit'
+  'python-pygments: for syntax highlighting and colorization'
+  'python-setproctitle: for updating process title to match Xonsh arguments'
+  'python-ujson: faster JSON serialization for history and caches'
+  'python-click: for click-style alias commands'
+)
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-setuptools'
+  'python-wheel'
+  # for satisfying pkgcheck:
+  'python-prompt_toolkit'
+  'python-pygments'
+  'python-setproctitle'
+)
+install=xonsh.install
+# NOTE: the upstream tag is "0.25.0" (no "v" prefix).
+# noextract: the tarball contains a real symlink (docs/changelog.md ->
+# ../CHANGELOG.md) that libarchive/bsdtar cannot create on Windows systems
+# where native symlink creation is disabled ("Invalid argument" while
+# extracting); GNU tar from the MSYS environment writes it as a regular
+# file copy. See prepare().
+source=(
+  "xonsh-${pkgver}.tar.gz::https://github.com/xonsh/xonsh/archive/refs/tags/${pkgver}.tar.gz"
+  "xonsh-msys2-libc.patch"
+)
+sha256sums=(
+  '655d8e2edf53aafd0c6c71a41020c88e7cbe8f0472f8a3fe851e9d5cbc656f9d'
+  '02d1ff3739576be537e3c36442278265d1e1152309ffa38d9d323eff423072dc'
+)
+noextract=("xonsh-${pkgver}.tar.gz")
+
+prepare() {
+  cd "${srcdir}"
+  if [ ! -d "${pkgname}-${pkgver}" ]; then
+    tar -xf "xonsh-${pkgver}.tar.gz"
+  fi
+  cd "${pkgname}-${pkgver}"
+  patch -p1 < ../xonsh-msys2-libc.patch
+}
+
+build() {
+  cd "${pkgname}-${pkgver}"
+  python -m build --wheel --no-isolation
+}
+
+check() {
+  cd "${pkgname}-${pkgver}"
+  # smoke test: install the built wheel in a throwaway venv and run the shell
+  python -m venv --system-site-packages test-env
+  test-env/bin/python -m installer dist/*.whl
+  test-env/bin/python -m xonsh --version
+}
+
+package() {
+  cd "${pkgname}-${pkgver}"
+  python -m installer --destdir="$pkgdir" dist/*.whl
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
+
+# Nota: con xonsh 0.25.0 ya no se necesitan como dependencias runtime
+# python-distro / python-packaging / python-ply / python-pyperclip /
+# python-ujson (PLY va vendido y el resto es opcional); quedan como
+# optdepends donde aplica.
+
+## dependencias de check de python-wheel (faltan y son complicadas!)
+# python-jsonschema
+# python-keyring
+# python-keyrings-alt

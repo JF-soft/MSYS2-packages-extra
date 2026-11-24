@@ -1,0 +1,11 @@
+# makepkg build directories
+/*/src/
+/*/pkg/
+/*/python-build-*/
+/*/test-env/
+
+# Downloaded sources and built packages
+/*/*.tar.*
+/*/*.zip
+/*/*.pkg.tar.*
+/*/*.src.tar.*
