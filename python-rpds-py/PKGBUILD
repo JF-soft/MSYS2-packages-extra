@@ -1,0 +1,50 @@
+_realname=rpds-py
+pkgname=python-rpds-py
+pkgver=2026.9.1
+pkgrel=1
+pkgdesc="Python bindings to Rust's persistent data structures (rpds)"
+arch=('x86_64')
+url="https://github.com/crate-py/rpds"
+msys2_repository_url="https://github.com/crate-py/rpds"
+msys2_references=(
+  'purl: pkg:pypi/rpds-py'
+  'archlinux: python-rpds-py'
+)
+license=('spdx:MIT')
+depends=('python')
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-maturin'
+  'rust'
+)
+# MSYS python-maturin (1.16.0) satisfies upstream's maturin>=1.9,<2.0 pin.
+source=("${_realname}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_realname::1}/${_realname}/rpds_py-${pkgver}.tar.gz")
+sha256sums=('4793ef7f78268b124b73fa933440f01d258bbae01de9fa53e9080c9ab0425a12')
+
+prepare() {
+  cd rpds_py-$pkgver
+  # Fetch Rust dependencies up front so build() can run offline (AGENTS.md 8.5).
+  # The upstream release tag ships Cargo.lock, which maturin's sdist includes.
+  cargo fetch --locked
+}
+
+build() {
+  cd rpds_py-$pkgver
+  python -m build --wheel --no-isolation
+}
+
+check() {
+  cd rpds_py-$pkgver
+  # install into a scratch prefix and run the tests against it, since the
+  # compiled extension only exists in the built wheel, not the source tree
+  python -m installer --destdir="$PWD/tmp_install" dist/*.whl
+  local site_packages=$(python -c "import site; print(site.getsitepackages()[0])")
+  PYTHONPATH="$PWD/tmp_install/$site_packages" pytest tests
+}
+
+package() {
+  cd rpds_py-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

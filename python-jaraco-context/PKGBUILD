@@ -1,0 +1,54 @@
+_realname=jaraco.context
+_name=jaraco-context  # normalized PyPI project name used in the source URL
+pkgname=python-jaraco-context
+pkgver=6.1.2
+pkgrel=1
+pkgdesc="Useful decorators and context managers"
+arch=('any')
+url="https://github.com/jaraco/jaraco.context"
+msys2_repository_url="https://github.com/jaraco/jaraco.context"
+msys2_references=(
+  'purl: pkg:pypi/jaraco-context'
+  'archlinux: python-jaraco.context'
+)
+license=('spdx:MIT')
+depends=('python')
+# backports.tarfile is only required for python < 3.12; MSYS ships python 3.14.
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-setuptools'
+  'python-setuptools-scm'
+)
+checkdepends=('python-pytest')
+source=("${_name}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_name::1}/${_name}/jaraco_context-${pkgver}.tar.gz")
+sha256sums=('f1a6c9d391e661cc5b8d39861ff077a7dc24dc23833ccee564b234b81c82dfe3')
+
+build() {
+  cd jaraco_context-$pkgver
+  # setuptools-scm has no Git metadata in the sdist
+  export SETUPTOOLS_SCM_PRETEND_VERSION="${pkgver}"
+  # Upstream's build-system requires the coherent.licensed plugin, which is
+  # not packaged for MSYS and cannot be bootstrapped (it builds with the
+  # self-hosted coherent.build backend). Skipping the PEP 517 dependency
+  # check is safe: the plugin only generates LICENSE, which the sdist already
+  # ships, and setuptools >= 77 handles the PEP 639 license expression.
+  python -m build --wheel --no-isolation --skip-dependency-check
+}
+
+check() {
+  cd jaraco_context-$pkgver
+  # --noconftest: the root conftest.py defines a tarfile_served fixture that
+  # needs portend (upstream "test" extra, not packaged for MSYS); the tests
+  # do not use it. Invoked as "python -m pytest" so the source tree is on
+  # sys.path even with conftest loading disabled.
+  python -m pytest --noconftest tests
+}
+
+package() {
+  cd jaraco_context-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  # LICENSE is pre-generated in the sdist by upstream's coherent.licensed
+  # plugin (the repository itself does not track a license file).
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

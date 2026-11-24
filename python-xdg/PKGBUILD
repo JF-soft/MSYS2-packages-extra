@@ -1,0 +1,37 @@
+_realname=pyxdg
+pkgname=python-xdg
+pkgver=0.28
+pkgrel=1
+pkgdesc="Implementations of freedesktop.org standards in Python"
+arch=('any')
+url="http://freedesktop.org/wiki/Software/pyxdg"
+msys2_repository_url="https://github.com/takluyver/pyxdg"
+msys2_references=(
+  'purl: pkg:pypi/pyxdg'
+  'archlinux: python-pyxdg'
+)
+license=('spdx:LGPL-2.0-only')
+depends=('python')
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-setuptools'
+)
+# setup.py-only project: build's default legacy backend needs only setuptools.
+source=("${_realname}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_realname::1}/${_realname}/${_realname}-${pkgver}.tar.gz")
+sha256sums=('3267bb3074e934df202af2ee0868575484108581e6f3cb006af1da35395e88b4')
+
+build() {
+  cd pyxdg-$pkgver
+  python -m build --wheel --no-isolation
+}
+
+# no check(): the tests need the freedesktop.org shared-mime-info database and
+# XDG directory environment of a running desktop session, not available in a
+# plain MSYS installation.
+
+package() {
+  cd pyxdg-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  install -Dm644 COPYING "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
+}

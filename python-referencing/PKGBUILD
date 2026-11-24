@@ -1,0 +1,63 @@
+_realname=referencing
+pkgname=python-referencing
+pkgver=0.37.0
+pkgrel=1
+pkgdesc="JSON Referencing + Python"
+arch=('any')
+url="https://referencing.readthedocs.io"
+msys2_repository_url="https://github.com/python-jsonschema/referencing"
+msys2_references=(
+  'purl: pkg:pypi/referencing'
+  'archlinux: python-referencing'
+)
+license=('spdx:MIT')
+depends=(
+  'python'
+  'python-attrs'
+  'python-rpds-py'
+)
+# typing-extensions is only required for python < 3.13; MSYS ships python 3.14.
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-hatchling'
+  'python-hatch-vcs'
+  'tar'
+)
+checkdepends=('python-pytest')
+# noextract: the sdist ships a symlink (CHANGELOG.rst -> docs/changes.rst)
+# whose target appears later in the archive. MSYS emulates symlinks as deep
+# copies of the target, so both bsdtar and GNU tar fail with ENOENT when the
+# entry is reached. CHANGELOG.rst is documentation-only (it is not part of
+# the built wheel), so the entry is excluded at extraction time
+# (AGENTS.md 7.3).
+noextract=("${_realname}-${pkgver}.tar.gz")
+source=("${_realname}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_realname::1}/${_realname}/${_realname}-${pkgver}.tar.gz")
+sha256sums=('44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8')
+
+prepare() {
+  cd "${srcdir}"
+  tar -xzf "${_realname}-${pkgver}.tar.gz" \
+    --exclude='referencing-0.37.0/CHANGELOG.rst'
+}
+
+build() {
+  cd referencing-$pkgver
+  # hatch-vcs has no Git metadata in the sdist
+  export SETUPTOOLS_SCM_PRETEND_VERSION="${pkgver}"
+  python -m build --wheel --no-isolation
+}
+
+check() {
+  cd referencing-$pkgver
+  # test_referencing_suite.py is ignored: it needs the referencing-suite Git
+  # submodule (not shipped in the sdist) and the subtests pytest plugin
+  # (python-pytest-subtests is not packaged for MSYS).
+  pytest referencing/tests --ignore=referencing/tests/test_referencing_suite.py
+}
+
+package() {
+  cd referencing-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  install -Dm644 COPYING "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
+}

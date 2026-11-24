@@ -1,0 +1,40 @@
+_realname=jsonschema-specifications
+pkgname=python-jsonschema-specifications
+pkgver=2025.9.1
+pkgrel=1
+pkgdesc="The JSON Schema meta-schemas and vocabularies, exposed as a Registry"
+arch=('any')
+url="https://github.com/python-jsonschema/jsonschema-specifications"
+msys2_repository_url="https://github.com/python-jsonschema/jsonschema-specifications"
+msys2_references=(
+  'purl: pkg:pypi/jsonschema-specifications'
+  'archlinux: python-jsonschema-specifications'
+)
+license=('spdx:MIT')
+depends=(
+  'python'
+  'python-referencing'
+)
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-hatchling'
+  'python-hatch-vcs'
+)
+source=("${_realname}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_realname::1}/${_realname}/jsonschema_specifications-${pkgver}.tar.gz")
+sha256sums=('b540987f239e745613c7a9176f3edb72b832a4ac465cf02712288397832b5e8d')
+
+build() {
+  cd jsonschema_specifications-$pkgver
+  # hatch-vcs has no Git metadata in the sdist
+  export SETUPTOOLS_SCM_PRETEND_VERSION="${pkgver}"
+  python -m build --wheel --no-isolation
+}
+
+# no check(): upstream ships no test suite (no tests directory in the sdist).
+
+package() {
+  cd jsonschema_specifications-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  install -Dm644 COPYING "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
+}

@@ -1,0 +1,46 @@
+_realname=jaraco.classes
+_name=jaraco-classes  # normalized PyPI project name used in the source URL
+pkgname=python-jaraco-classes
+pkgver=3.4.0
+pkgrel=1
+pkgdesc="Utility functions for Python class constructs"
+arch=('any')
+url="https://github.com/jaraco/jaraco.classes"
+msys2_repository_url="https://github.com/jaraco/jaraco.classes"
+msys2_references=(
+  'purl: pkg:pypi/jaraco-classes'
+  'archlinux: python-jaraco.classes'
+)
+license=('spdx:MIT')
+depends=(
+  'python'
+  'python-more-itertools'
+)
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-setuptools'
+  'python-setuptools-scm'
+)
+source=("${_name}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_name::1}/${_name}/${_realname}-${pkgver}.tar.gz")
+sha256sums=('47a024b51d0239c0dd8c8540c6c7f484be3b8fcf0b2d85c13825780d3b3f3acd')
+
+build() {
+  cd jaraco.classes-$pkgver
+  # setuptools-scm has no Git metadata in the sdist
+  export SETUPTOOLS_SCM_PRETEND_VERSION="${pkgver}"
+  python -m build --wheel --no-isolation
+}
+
+check() {
+  cd jaraco.classes-$pkgver
+  # pytest.ini adds --doctest-modules; the package ships no tests directory,
+  # so this runs the doctests of the source modules.
+  pytest jaraco
+}
+
+package() {
+  cd jaraco.classes-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

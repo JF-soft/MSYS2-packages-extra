@@ -1,0 +1,75 @@
+_realname=keyring
+pkgname=python-keyring
+pkgver=25.7.0
+pkgrel=1
+pkgdesc="Store and access your passwords safely"
+arch=('any')
+url="https://github.com/jaraco/keyring"
+msys2_repository_url="https://github.com/jaraco/keyring"
+msys2_references=(
+  'purl: pkg:pypi/keyring'
+  'archlinux: python-keyring'
+)
+license=('spdx:MIT')
+depends=(
+  'python'
+  'python-jaraco-classes'
+  'python-jaraco-context'
+  'python-jaraco-functools'
+  'python-jeepney'
+  'python-secretstorage'
+)
+# Upstream marks SecretStorage and jeepney with sys_platform == "linux"; they
+# are kept unconditionally so keyring's SecretService D-Bus backend works in
+# the POSIX-like MSYS environment (same choice as Arch).
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-setuptools'
+  'python-setuptools-scm'
+)
+checkdepends=('python-pytest')
+source=("${_realname}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_realname::1}/${_realname}/${_realname}-${pkgver}.tar.gz")
+sha256sums=('fe01bd85eb3f8fb3dd0405defdeac9a5b4f6f0439edbb3149577f244a2e8245b')
+
+build() {
+  cd keyring-$pkgver
+  # setuptools-scm has no Git metadata in the sdist
+  export SETUPTOOLS_SCM_PRETEND_VERSION="${pkgver}"
+  # Upstream's build-system requires the coherent.licensed plugin
+  # (jaraco/skeleton#174), which is not packaged for MSYS and cannot be
+  # bootstrapped (it builds with the self-hosted coherent.build backend).
+  # Skipping the PEP 517 dependency check is safe: the plugin only generates
+  # LICENSE, which the sdist already ships, and setuptools >= 77 handles the
+  # PEP 639 license expression.
+  python -m build --wheel --no-isolation --skip-dependency-check
+}
+
+check() {
+  cd keyring-$pkgver
+  # Invoked as "python -m pytest" so the source tree is on sys.path:
+  # pytest.ini sets importlib mode, which does not insert the rootdir into
+  # sys.path by itself.
+  # test_entry_point needs the package installed as a distribution with entry
+  # points (deselected as in Arch); the D-Bus backend tests skip themselves
+  # when no session bus is available.
+  # tests/test_multiprocess.py is deselected: since Python 3.14 the default
+  # multiprocessing start method (forkserver/spawn) launches a fresh
+  # interpreter whose backend detection finds no recommended backend on MSYS
+  # (no D-Bus SecretService, win32 backend not applicable under cygwin), so
+  # the child always raises NoKeyringError.
+  python -m pytest tests \
+    --deselect tests/test_packaging.py::test_entry_point \
+    --deselect tests/test_multiprocess.py::test_multiprocess_get \
+    --deselect tests/test_multiprocess.py::test_multiprocess_get_after_native_get
+}
+
+# shell command completion files are not generated (needs a scratch venv with
+# the package installed); optdepends for alternative backends are omitted
+# because none of them (libsecret, kwallet, ...) apply to MSYS.
+
+package() {
+  cd keyring-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

@@ -1,0 +1,51 @@
+_realname=jsonschema
+pkgname=python-jsonschema
+pkgver=4.26.0
+pkgrel=1
+pkgdesc="An implementation of JSON Schema validation for Python"
+arch=('any')
+url="https://github.com/python-jsonschema/jsonschema"
+msys2_repository_url="https://github.com/python-jsonschema/jsonschema"
+msys2_references=(
+  'purl: pkg:pypi/jsonschema'
+  'archlinux: python-jsonschema'
+)
+license=('spdx:MIT')
+depends=(
+  'python'
+  'python-attrs'
+  'python-jsonschema-specifications'
+  'python-referencing'
+  'python-rpds-py'
+)
+# python-rpds-py is listed here because it is a direct dependency per upstream
+# requires_dist; Arch resolves it transitively through python-referencing, but
+# direct dependencies must be declared explicitly (AGENTS.md 8.1).
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-hatchling'
+  'python-hatch-vcs'
+  'python-hatch-fancy-pypi-readme'
+)
+source=("${_realname}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_realname::1}/${_realname}/${_realname}-${pkgver}.tar.gz")
+sha256sums=('0c26707e2efad8aa1bfc5b7ce170f3fccc2e4918ff85989ba9ffa9facb2be326')
+
+build() {
+  cd jsonschema-$pkgver
+  # hatch-vcs has no Git metadata in the sdist
+  export SETUPTOOLS_SCM_PRETEND_VERSION="${pkgver}"
+  python -m build --wheel --no-isolation
+}
+
+# no check(): upstream's suite runs under twisted's trial (python-twisted is
+# not packaged for MSYS) and needs the JSON Schema test suite Git submodule,
+# which is not shipped in the sdist.
+# no optdepends: the "format" extra validators (python-fqdn, python-idna,
+# python-rfc3339-validator, ...) are not packaged for MSYS.
+
+package() {
+  cd jsonschema-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  install -Dm644 COPYING "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
+}

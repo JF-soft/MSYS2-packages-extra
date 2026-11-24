@@ -1,0 +1,40 @@
+_realname=secretstorage
+pkgname=python-secretstorage
+pkgver=3.5.0
+pkgrel=1
+pkgdesc="Python bindings to FreeDesktop.org Secret Service API"
+arch=('any')
+url="https://github.com/mitya57/secretstorage"
+msys2_repository_url="https://github.com/mitya57/secretstorage"
+msys2_references=(
+  'purl: pkg:pypi/secretstorage'
+  'archlinux: python-secretstorage'
+)
+license=('spdx:BSD-3-Clause')
+depends=(
+  'python'
+  'python-cryptography'
+  'python-jeepney'
+)
+# upstream's build-system requires setuptools>=77; MSYS ships 84.2.1.
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-setuptools'
+)
+source=("${_realname}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_realname::1}/${_realname}/${_realname}-${pkgver}.tar.gz")
+sha256sums=('f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be')
+
+build() {
+  cd secretstorage-$pkgver
+  python -m build --wheel --no-isolation
+}
+
+# no check(): the tests need a running SecretService D-Bus daemon
+# (org.freedesktop.secrets), which does not exist on MSYS.
+
+package() {
+  cd secretstorage-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

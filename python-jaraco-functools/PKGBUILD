@@ -1,0 +1,64 @@
+_realname=jaraco.functools
+_name=jaraco-functools  # normalized PyPI project name used in the source URL
+pkgname=python-jaraco-functools
+pkgver=4.6.0
+pkgrel=1
+pkgdesc="Functools like those found in stdlib"
+arch=('any')
+url="https://github.com/jaraco/jaraco.functools"
+msys2_repository_url="https://github.com/jaraco/jaraco.functools"
+msys2_references=(
+  'purl: pkg:pypi/jaraco-functools'
+  'archlinux: python-jaraco.functools'
+)
+license=('spdx:MIT')
+depends=(
+  'python'
+  'python-more-itertools'
+)
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-setuptools'
+  'python-setuptools-scm'
+)
+checkdepends=(
+  'python-pytest'
+  'python-jaraco-classes'
+)
+# The tests import jaraco.classes, so build and install python-jaraco-classes
+# before this package (see the build order in the repository README/report).
+source=("${_name}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_name::1}/${_name}/jaraco_functools-${pkgver}.tar.gz")
+sha256sums=('880c577ec9720b3a052d5bc611fb9f2269b3d87902ef42440df443b88e443280')
+
+build() {
+  cd jaraco_functools-$pkgver
+  # setuptools-scm has no Git metadata in the sdist
+  export SETUPTOOLS_SCM_PRETEND_VERSION="${pkgver}"
+  # Upstream's build-system requires the coherent.licensed plugin, which is
+  # not packaged for MSYS and cannot be bootstrapped (it builds with the
+  # self-hosted coherent.build backend). Skipping the PEP 517 dependency
+  # check is safe: the plugin only generates LICENSE, which the sdist already
+  # ships, and setuptools >= 77 handles the PEP 639 license expression.
+  python -m build --wheel --no-isolation --skip-dependency-check
+}
+
+check() {
+  cd jaraco_functools-$pkgver
+  # Invoked as "python -m pytest" so the source tree is on sys.path: the root
+  # conftest.py imports jaraco.functools, and pytest's importlib mode (set in
+  # pytest.ini) does not insert the rootdir into sys.path by itself.
+  # test_function_throttled is deselected: it asserts a timing window
+  # (28-32 calls/s) that the MSYS/cygwin runtime cannot meet; upstream itself
+  # marks it xfail on performance-throttled CI runners.
+  python -m pytest test_functools.py \
+    --deselect test_functools.py::TestThrottler::test_function_throttled
+}
+
+package() {
+  cd jaraco_functools-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  # LICENSE is pre-generated in the sdist by upstream's coherent.licensed
+  # plugin (the repository itself does not track a license file).
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

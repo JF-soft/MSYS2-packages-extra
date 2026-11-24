@@ -1,0 +1,49 @@
+_realname=jeepney
+pkgname=python-jeepney
+pkgver=0.9.0
+pkgrel=1
+pkgdesc="Low-level, pure Python D-Bus protocol wrapper"
+arch=('any')
+url="https://gitlab.com/takluyver/jeepney"
+msys2_repository_url="https://gitlab.com/takluyver/jeepney"
+msys2_references=(
+  'purl: pkg:pypi/jeepney'
+  'archlinux: python-jeepney'
+)
+license=('spdx:MIT')
+depends=('python')
+makedepends=(
+  'python-build'
+  'python-flit-core'
+  'python-installer'
+)
+source=("${_realname}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_realname::1}/${_realname}/${_realname}-${pkgver}.tar.gz")
+sha256sums=('cf0e9e845622b81e4a28df94c40345400256ec608d0e55bb8a3feaa9163f5732')
+
+build() {
+  cd jeepney-$pkgver
+  # Upstream pins flit_core>=3.11,<4 while the MSYS2 repo ships
+  # python-flit-core 4.x; the build works with it, so skip the over-strict
+  # PEP 517 dependency check (same pattern as the python-click recipe).
+  python -m build --wheel --no-isolation --skip-dependency-check
+}
+
+check() {
+  cd jeepney-$pkgver
+  # Only tests that do not need a live D-Bus session bus or the unpackaged
+  # test plugins python-trio / pytest-asyncio are run; test_bus, test_fds and
+  # the jeepney/io tests are excluded for that reason.
+  pytest jeepney/tests/test_auth.py \
+         jeepney/tests/test_bindgen.py \
+         jeepney/tests/test_low_level.py \
+         jeepney/tests/test_wrappers.py
+}
+
+package() {
+  cd jeepney-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  # do not ship the test modules (same as Arch)
+  rm -r "${pkgdir}/usr/lib/python"*/site-packages/jeepney/tests
+  rm -r "${pkgdir}/usr/lib/python"*/site-packages/jeepney/io/tests
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

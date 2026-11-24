@@ -1,0 +1,50 @@
+_realname=keyrings.alt
+_name=keyrings-alt  # normalized PyPI project name used in the source URL
+pkgname=python-keyrings-alt
+pkgver=5.0.2
+pkgrel=1
+pkgdesc="Alternate keyring implementations"
+arch=('any')
+url="https://github.com/jaraco/keyrings.alt"
+msys2_repository_url="https://github.com/jaraco/keyrings.alt"
+msys2_references=(
+  'purl: pkg:pypi/keyrings-alt'
+  'archlinux: python-keyrings-alt'
+)
+license=('spdx:MIT')
+depends=(
+  'python'
+  'python-jaraco-classes'
+  'python-jaraco-context'
+  'python-keyring'
+)
+# Upstream metadata lists keyring only as a test dependency, but the modules
+# import keyring directly; Arch declares it as a dependency too.
+# python-pycryptodomex is a hard dependency in Arch but is not packaged for
+# MSYS, so the encrypted keyring backends are exposed as an optional feature.
+optdepends=('python-pycryptodomex: for encrypted keyring backends')
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-setuptools'
+  'python-setuptools-scm'
+)
+source=("${_name}-${pkgver}.tar.gz::https://files.pythonhosted.org/packages/source/${_name::1}/${_name}/keyrings_alt-${pkgver}.tar.gz")
+sha256sums=('8f097ebe9dc8b185106502b8cdb066c926d2180e13b4689fd4771a3eab7d69fb')
+
+build() {
+  cd keyrings_alt-$pkgver
+  # setuptools-scm has no Git metadata in the sdist
+  export SETUPTOOLS_SCM_PRETEND_VERSION="${pkgver}"
+  python -m build --wheel --no-isolation
+}
+
+# no check(): test_crypto.py and test_keyczar.py need
+# python-pycryptodome/python-pycryptodomex, which are not packaged for MSYS,
+# and their import fails at collection time without them.
+
+package() {
+  cd keyrings_alt-$pkgver
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
